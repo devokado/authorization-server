@@ -17,8 +17,8 @@ public class PostController {
     private PostService service;
 
     @PostMapping()
-    public void create(@RequestBody Post post) {
-        service.save(post);
+    public Post create(@RequestBody Post post) {
+        return service.save(post);
     }
 
     @GetMapping()
@@ -42,11 +42,10 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@RequestBody Post post, @PathVariable Long id) {
+    public ResponseEntity<Post> update(@RequestBody Post post, @PathVariable Long id) {
         try {
-            Post existPost = service.get(id);
-            service.save(post);
-            return new ResponseEntity<>(HttpStatus.OK);
+            Post newPost = service.update(post, id);
+            return new ResponseEntity<>(newPost, HttpStatus.OK);
         } catch (NoSuchElementException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

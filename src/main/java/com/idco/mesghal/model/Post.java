@@ -1,11 +1,21 @@
 package com.idco.mesghal.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import java.sql.Date;
+import java.time.LocalDateTime;
 
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 public class Post {
     @Id
@@ -13,7 +23,14 @@ public class Post {
     private long id;
     private String title;
     private String content;
-    private Date cdt;
+    @CreationTimestamp
+    private LocalDateTime cdt;
+    @UpdateTimestamp
+    private LocalDateTime udt;
+
+    public long getId() {
+        return id;
+    }
 
     public void setTitle(String title) {
         this.title = title;
@@ -31,11 +48,21 @@ public class Post {
         return content;
     }
 
-    public Date getCdt() {
+    public LocalDateTime getCdt() {
         return cdt;
     }
 
-    public void setCdt(Date cdt) {
+    public void setCdt(LocalDateTime cdt) {
         this.cdt = cdt;
     }
+
+    public LocalDateTime getUdt() {
+        return udt;
+    }
+
+    public void setUdt(LocalDateTime udt) {
+        this.udt = udt;
+    }
+
+
 }

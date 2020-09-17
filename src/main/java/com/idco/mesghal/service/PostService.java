@@ -18,8 +18,8 @@ public class PostService {
         return repository.findAll();
     }
 
-    public void save(Post post) {
-        repository.save(post);
+    public Post save(Post post) {
+        return repository.save(post);
     }
 
     public Post get(Long id) {
@@ -28,5 +28,19 @@ public class PostService {
 
     public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    public Post update(Post post, Long id) {
+        Post existPost = repository.findById(id).orElse(null);
+        if (existPost != null) {
+            if (post.getTitle() != null)
+                existPost.setTitle(post.getTitle());
+
+            if (post.getContent() != null)
+                existPost.setContent(post.getContent());
+
+            return repository.save(existPost);
+        }
+        return null;
     }
 }
