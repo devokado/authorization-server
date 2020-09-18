@@ -1,15 +1,13 @@
 package com.idco.mesghal.service;
 
-import com.idco.mesghal.repository.PostRepository;
 import com.idco.mesghal.model.Post;
+import com.idco.mesghal.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.util.List;
 
 @Service
-@Transactional
 public class PostService {
     @Autowired
     private PostRepository repository;
