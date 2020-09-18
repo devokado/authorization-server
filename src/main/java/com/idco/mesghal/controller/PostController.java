@@ -17,35 +17,46 @@ public class PostController {
     private PostService service;
 
     @PostMapping()
-    public Post create(@RequestBody Post post) {
-        return service.save(post);
+    public ResponseEntity<Post> create(@RequestBody Post post) {
+        try {
+            return new ResponseEntity<>(service.save(post), HttpStatus.OK);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @GetMapping()
-    public List<Post> list() {
-        return service.listAll();
+    public ResponseEntity<List<Post>> list() {
+        try {
+            return new ResponseEntity<>(service.listAll(), HttpStatus.OK);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Post> retrieve(@PathVariable Long id) {
         try {
-            Post post = service.get(id);
-            return new ResponseEntity<>(post, HttpStatus.OK);
+            return new ResponseEntity<>(service.get(id), HttpStatus.OK);
         } catch (NoSuchElementException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<HttpStatus> delete(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Post> update(@RequestBody Post post, @PathVariable Long id) {
         try {
-            Post newPost = service.update(post, id);
-            return new ResponseEntity<>(newPost, HttpStatus.OK);
+            return new ResponseEntity<>(service.update(post, id), HttpStatus.OK);
         } catch (NoSuchElementException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
