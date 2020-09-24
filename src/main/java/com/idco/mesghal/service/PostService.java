@@ -3,6 +3,9 @@ package com.idco.mesghal.service;
 import com.idco.mesghal.model.Post;
 import com.idco.mesghal.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +17,14 @@ public class PostService {
 
     public List<Post> listAll() {
         return repository.findAll();
+    }
+
+    public Page<Post> listAllPagination(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+
+    public List<Post> listAllSorting(Sort sort) {
+        return repository.findAll(sort);
     }
 
     public Post save(Post post) {

@@ -3,6 +3,7 @@ package com.idco.mesghal.model;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.ReadOnlyProperty;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @ReadOnlyProperty
     private long id;
     @CreationTimestamp
     private LocalDateTime cdt;
@@ -24,4 +26,13 @@ public class Post {
 
     private String title;
     private String content;
+
+    public Post(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
+
+    public Post() {
+
+    }
 }

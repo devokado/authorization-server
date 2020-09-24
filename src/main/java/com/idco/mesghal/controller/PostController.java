@@ -3,6 +3,9 @@ package com.idco.mesghal.controller;
 import com.idco.mesghal.model.Post;
 import com.idco.mesghal.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,21 +20,17 @@ public class PostController {
     private PostService service;
 
     @PostMapping()
-    public ResponseEntity<Post> create(@RequestBody Post post) {
+    public ResponseEntity<?> create(@RequestBody Post post) {
         try {
-            return new ResponseEntity<>(service.save(post), HttpStatus.OK);
+            return ResponseEntity.ok().body(service.save(post));
         } catch (NoSuchElementException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping()
-    public ResponseEntity<List<Post>> list() {
-        try {
-            return new ResponseEntity<>(service.listAll(), HttpStatus.OK);
-        } catch (NoSuchElementException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+    public List<Post> list() {
+        return service.listAll();
     }
 
     @GetMapping("/{id}")

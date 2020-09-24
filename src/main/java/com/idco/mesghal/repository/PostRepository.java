@@ -9,6 +9,6 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(value = "SELECT title,content FROM Post")
-    List<Post> queryByTitleAndContent();
+    List<Post> findAllById();
 
 }
