@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -22,18 +23,23 @@ public class PostController {
     @PostMapping()
     public ResponseEntity<?> create(@RequestBody Post post) {
         try {
-            return ResponseEntity.ok().body(service.save(post));
+            return ResponseEntity.created(URI.create("/post/" + post.getId())).body(service.save(post));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+//    @GetMapping()
+//    public Page<Post> list(Pageable pageable) {
+//        return service.listAllPagination(pageable);
+//    }
 
     @GetMapping()
     public List<Post> list() {
         return service.listAll();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}")
     public ResponseEntity<Post> retrieve(@PathVariable Long id) {
         try {
             return new ResponseEntity<>(service.get(id), HttpStatus.OK);

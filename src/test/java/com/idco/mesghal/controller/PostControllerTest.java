@@ -1,4 +1,4 @@
-package com.idco.mesghal;
+package com.idco.mesghal.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idco.mesghal.model.Post;
@@ -14,12 +14,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.internal.bytebuddy.matcher.ElementMatchers.is;
+import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -46,12 +47,12 @@ public class PostControllerTest {
 
         doReturn(posts).when(postService).listAll();
 
-        mockMvc.perform(get("/post"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/post"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
 
-                .andExpect((ResultMatcher) jsonPath("$[0].title", is("Title test1")))
-                .andExpect((ResultMatcher) jsonPath("$[1].title", is("Title test2")));
+                .andExpect(jsonPath("$[0].title", is("Title test1")))
+                .andExpect(jsonPath("$[1].title", is("Title test2")));
     }
 
     @Test
@@ -61,12 +62,12 @@ public class PostControllerTest {
 
         doReturn(mockPost).when(postService).get(mockPost.getId());
 
-        mockMvc.perform(get("/post/{id}", 1))
+        mockMvc.perform(get("/post/{id}", mockPost.getId()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
 
-                .andExpect((ResultMatcher) jsonPath("$.title", is(mockPost.getTitle())))
-                .andExpect((ResultMatcher) jsonPath("$.content", is(mockPost.getContent())));
+                .andExpect(jsonPath("$.title", is("Title test")))
+                .andExpect(jsonPath("$.content", is("Content test")));
 
 
     }
@@ -86,8 +87,27 @@ public class PostControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
 
-                .andExpect((ResultMatcher) jsonPath("$.title", is("Title test new")))
-                .andExpect((ResultMatcher) jsonPath("$.content", is("Content test new")));
+                .andExpect(jsonPath("$.title", is("Title test new")))
+                .andExpect(jsonPath("$.content", is("Content test new")));
+    }
+
+    @Test
+    @DisplayName("Update an existing post - PUT /post/1")
+    public void testUpdatePost() throws Exception {
+        Post newPost = new Post("Title test", "Content test");
+        Post mockPost = new Post("Title test new", "Content test new");
+
+        doReturn(mockPost).when(postService).update(ArgumentMatchers.any(), eq(mockPost.getId()));
+
+        mockMvc.perform(put("/post/{id}", mockPost.getId())
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(new ObjectMapper().writeValueAsString(newPost)))
+
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+
+                .andExpect(jsonPath("$.title", is("Title test new")))
+                .andExpect(jsonPath("$.content", is("Content test new")));
     }
 
     @Test
@@ -95,8 +115,8 @@ public class PostControllerTest {
     public void testDeletePost() throws Exception {
         Post mockPost = new Post("Title test", "Content test");
 
-        doReturn(mockPost).when(postService).delete(mockPost.getId());
+        doReturn(mockPost).when(postService).get(mockPost.getId());
 
-        mockMvc.perform(delete("/post")).andExpect(status().isOk());
+        mockMvc.perform(delete("/post/{id}", 1)).andExpect(status().isNoContent());
     }
 }
