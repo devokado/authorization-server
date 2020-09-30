@@ -38,8 +38,8 @@ public class PostControllerTest {
     @Test
     @DisplayName("Get all posts - GET /post")
     public void testGetPosts() throws Exception {
-        Post mockPost1 = new Post("Title test1", "Content test1");
-        Post mockPost2 = new Post("Title test2", "Content test2");
+        Post mockPost1 = new Post(1L,"Title test1", "Content test1");
+        Post mockPost2 = new Post(1L,"Title test2", "Content test2");
 
         List<Post> posts = new ArrayList<>();
         posts.add(mockPost1);
@@ -58,7 +58,7 @@ public class PostControllerTest {
     @Test
     @DisplayName("Get specific post with id - GET /post/1")
     public void testGetSpecificPost() throws Exception {
-        Post mockPost = new Post("Title test", "Content test");
+        Post mockPost = new Post(1L,"Title test", "Content test");
 
         doReturn(mockPost).when(postService).get(mockPost.getId());
 
@@ -75,8 +75,8 @@ public class PostControllerTest {
     @Test
     @DisplayName("Create new post - POST /post")
     public void testSavePost() throws Exception {
-        Post newPost = new Post("Title test", "Content test");
-        Post mockPost = new Post("Title test new", "Content test new");
+        Post newPost = new Post(1L,"Title test", "Content test");
+        Post mockPost = new Post(1L,"Title test new", "Content test new");
 
         doReturn(mockPost).when(postService).save(ArgumentMatchers.any());
 
@@ -94,8 +94,8 @@ public class PostControllerTest {
     @Test
     @DisplayName("Update an existing post - PUT /post/1")
     public void testUpdatePost() throws Exception {
-        Post newPost = new Post("Title test", "Content test");
-        Post mockPost = new Post("Title test new", "Content test new");
+        Post newPost = new Post(1L,"Title test", "Content test");
+        Post mockPost = new Post(1L,"Title test new", "Content test new");
 
         doReturn(mockPost).when(postService).update(ArgumentMatchers.any(), eq(mockPost.getId()));
 
@@ -113,7 +113,7 @@ public class PostControllerTest {
     @Test
     @DisplayName("Delete post - DELETE /post")
     public void testDeletePost() throws Exception {
-        Post mockPost = new Post("Title test", "Content test");
+        Post mockPost = new Post(1L,"Title test", "Content test");
 
         doReturn(mockPost).when(postService).get(mockPost.getId());
 

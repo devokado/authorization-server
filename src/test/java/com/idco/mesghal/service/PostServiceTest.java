@@ -13,6 +13,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -31,8 +32,8 @@ public class PostServiceTest {
     @Test
     @DisplayName("Get all posts")
     public void testGetPosts() {
-        Post mockPost1 = new Post("Title test1", "Content test1");
-        Post mockPost2 = new Post("Title test2", "Content test2");
+        Post mockPost1 = new Post(1L, "Title test1", "Content test1");
+        Post mockPost2 = new Post(1L, "Title test2", "Content test2");
 
         doReturn(Arrays.asList(mockPost1, mockPost2)).when(postRepository).findAll();
 
@@ -44,11 +45,11 @@ public class PostServiceTest {
     @Test
     @DisplayName("Get specific post with id")
     public void testGetSpecificPost() {
-        Post mockPost = new Post("Title test", "Content test");
+        Post mockPost = new Post(1L, "Title test", "Content test");
 
-        doReturn(mockPost).when(postRepository).findById(mockPost.getId());
+        doReturn(Optional.of(mockPost)).when(postRepository).findById(mockPost.getId());
 
-        Post foundPost = postService.get(1L);
+        Post foundPost = postService.get(mockPost.getId());
 
         Assertions.assertNotNull(foundPost);
         Assertions.assertSame("Title test", foundPost.getTitle());
@@ -58,7 +59,7 @@ public class PostServiceTest {
     @Test
     @DisplayName("Create new post")
     public void testSavePost() {
-        Post mockPost = new Post("Title test", "Content test");
+        Post mockPost = new Post(1L, "Title test", "Content test");
 
         doReturn(mockPost).when(postRepository).save(any());
 
@@ -72,10 +73,10 @@ public class PostServiceTest {
     @Test
     @DisplayName("Update an existing post")
     public void testUpdatePost() {
-        Post existingPost = new Post("Title test", "Content test");
-        Post newPost = new Post("Title test new", "Content test new");
+        Post existingPost = new Post(1L, "Title test", "Content test");
+        Post newPost = new Post(1L, "Title test new", "Content test new");
 
-        doReturn(existingPost).when(postRepository).findById(existingPost.getId());
+        doReturn(Optional.of(existingPost)).when(postRepository).findById(existingPost.getId());
         doReturn(newPost).when(postRepository).save(existingPost);
 
         Post updatePost = postService.update(existingPost, existingPost.getId());
@@ -86,13 +87,13 @@ public class PostServiceTest {
     @Test
     @DisplayName("Delete post")
     public void testDeletePost() {
-        Post mockPost = new Post("Title test", "Content test");
-        Post mockPost2 = new Post("Title test2", "Content test2");
+        Post mockPost = new Post(1L, "Title test", "Content test");
 
         doNothing().when(postRepository).deleteById(mockPost.getId());
 
-        postService.delete(1L);
+        postService.delete(mockPost.getId());
+        Post deletedPost = postService.get(mockPost.getId());
 
-        Assertions.assertEquals(0, postRepository.count());
+        Assertions.assertNull(deletedPost);
     }
 }
