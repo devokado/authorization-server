@@ -1,4 +1,4 @@
-package com.idco.mesghal.model;
+package com.idco.mesghal.entity;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;

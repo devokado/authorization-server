@@ -1,6 +1,6 @@
 package com.idco.mesghal.service;
 
-import com.idco.mesghal.model.Post;
+import com.idco.mesghal.entity.Post;
 import com.idco.mesghal.repository.PostRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;

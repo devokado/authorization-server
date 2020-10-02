@@ -1,15 +1,11 @@
 package com.idco.mesghal.controller;
 
-import com.idco.mesghal.model.Post;
+import com.idco.mesghal.entity.Post;
 import com.idco.mesghal.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.net.URI;
 import java.util.List;
 import java.util.NoSuchElementException;
