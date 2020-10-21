@@ -1,14 +1,13 @@
 package com.idco.mesghal.controller;
 
-import com.idco.mesghal.entity.Post;
+import com.idco.mesghal.model.Post;
 import com.idco.mesghal.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.net.URI;
+
+import javax.annotation.security.RolesAllowed;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -18,10 +17,11 @@ public class PostController {
     @Autowired
     private PostService service;
 
+    @RolesAllowed("user")
     @PostMapping()
-    public ResponseEntity<?> create(@RequestBody Post post) {
+    public ResponseEntity<?> create(@RequestBody Post post,@RequestHeader String Authorization) {
         try {
-            return ResponseEntity.created(URI.create("/post/" + post.getId())).body(service.save(post));
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.save(post));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -46,6 +46,7 @@ public class PostController {
         }
     }
 
+    @RolesAllowed("user")
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> delete(@PathVariable Long id) {
         try {
@@ -56,6 +57,7 @@ public class PostController {
         }
     }
 
+    @RolesAllowed("user")
     @PutMapping("/{id}")
     public ResponseEntity<Post> update(@RequestBody Post post, @PathVariable Long id) {
         try {

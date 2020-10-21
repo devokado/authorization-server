@@ -1,7 +1,7 @@
 package com.idco.mesghal.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.idco.mesghal.entity.Post;
+import com.idco.mesghal.model.Post;
 import com.idco.mesghal.service.PostService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

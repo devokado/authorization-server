@@ -1,5 +1,6 @@
-package com.idco.mesghal.entity;
+package com.idco.mesghal.model;
 
+import com.sun.istack.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,8 +8,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -23,14 +25,13 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime udt;
 
-    @Column(unique = true,length = 32)
+    @Column(unique = true, length = 32)
+    @Size(min = 4)
+    @NotNull
     private String username;
-
     private String password;
     private String firstName;
     private String lastName;
+    @Email
     private String email;
-    @ManyToMany
-    @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles;
 }
