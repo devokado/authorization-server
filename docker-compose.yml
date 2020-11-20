@@ -27,7 +27,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build:
+      context: keycloak
+    #    image: quay.io/keycloak/keycloak:latest
     command: -Dkeycloak.profile.feature.upload_scripts=enabled
     environment:
       DB_VENDOR: MYSQL
@@ -37,7 +39,7 @@ services:
       DB_PASSWORD: secretpass
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin
-#      JDBC_PARAMS: "useSSl=false"
+    #      JDBC_PARAMS: "useSSl=false"
     ports:
       - 8080:8080
     depends_on:
