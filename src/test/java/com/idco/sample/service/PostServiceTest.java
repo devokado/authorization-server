@@ -33,13 +33,15 @@ public class PostServiceTest {
     @DisplayName("Get all posts")
     public void testGetPosts() {
         Post mockPost1 = new Post(1L, "Title test1", "Content test1");
-        Post mockPost2 = new Post(1L, "Title test2", "Content test2");
+        Post mockPost2 = new Post(2L, "Title test2", "Content test2");
 
         doReturn(Arrays.asList(mockPost1, mockPost2)).when(postRepository).findAll();
 
         List<Post> allPosts = postService.listAll();
 
         Assertions.assertEquals(2, allPosts.size());
+        Assertions.assertEquals(1L, allPosts.get(0).getId());
+        Assertions.assertEquals(2L, allPosts.get(1).getId());
     }
 
     @Test
