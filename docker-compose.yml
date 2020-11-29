@@ -27,9 +27,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: root
 
   keycloak:
-    build:
-      context: keycloak
-    #    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:latest
     command: -Dkeycloak.profile.feature.upload_scripts=enabled
     environment:
       DB_VENDOR: MYSQL
