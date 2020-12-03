@@ -3,7 +3,6 @@ package com.devokado.authServer.service;
 import com.devokado.authServer.model.request.LoginRequest;
 import com.devokado.authServer.model.request.RefreshTokenRequest;
 import com.devokado.authServer.model.request.UserRequest;
-import com.devokado.authServer.model.response.StatusResponse;
 import lombok.val;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -26,7 +25,6 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -48,9 +46,6 @@ public class KeycloakService {
     @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${otp.security.email-verified}")
-    private boolean emailVerified;
-
     private Keycloak initialKeycloak() {
         return KeycloakBuilder.builder().serverUrl(serverUrl).realm("master").username("admin").password("admin")
                 .clientId("admin-cli").resteasyClient(new ResteasyClientBuilder().connectionPoolSize(10).build())
@@ -66,7 +61,7 @@ public class KeycloakService {
         return getKeycloakRealmResource().users();
     }
 
-    public Object createKeycloakUser(UserRequest model) {
+    public javax.ws.rs.core.Response createKeycloakUser(UserRequest model) {
         int statusId;
 
         try {
@@ -75,17 +70,13 @@ public class KeycloakService {
             UserRepresentation user = new UserRepresentation();
             user.setUsername(model.getMobile());
             user.setEmail(model.getEmail());
-            user.setEmailVerified(emailVerified);
-            user.setEnabled(true);
-            Response result = userResource.create(user);
+            user.setEnabled(model.getActive());
+            javax.ws.rs.core.Response result = userResource.create(user);
 
             statusId = result.getStatus();
 
             if (statusId == 201) {
-
                 String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-
-                System.out.println("User created with userId:" + userId);
 
                 // Define password credential
                 CredentialRepresentation passwordCred = new CredentialRepresentation();
@@ -100,21 +91,17 @@ public class KeycloakService {
                 RealmResource realmResource = getKeycloakRealmResource();
                 RoleRepresentation savedRoleRepresentation = realmResource.roles().get("app-user").toRepresentation();
                 realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
-                return result;
-            } else if (statusId == 409) {
-                return new StatusResponse(statusId, "Username: " + model.getMobile() + " already present in keycloak");
-            } else {
-                return new StatusResponse(statusId, "Username: " + model.getMobile() + " could not be created in keycloak");
             }
+
+            return result;
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
-    public String getToken(LoginRequest loginRequest) {
+    public String createToken(LoginRequest loginRequest) {
         String response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
@@ -170,8 +157,7 @@ public class KeycloakService {
     }
 
     public void logoutKeycloakUser(String token) {
-        String userId = tokenParser(token).getSubject();
-        getKeycloakUserResource().get(userId).logout();
+        getKeycloakUserResource().get(token).logout();
     }
 
     public void updateKeycloakUserPassword(String userId, String newPassword) {
@@ -185,6 +171,10 @@ public class KeycloakService {
 
         // Set password credential
         userResource.get(userId).resetPassword(passwordCred);
+    }
+
+    public void sendVerifyEmail(String userId) {
+        getKeycloakUserResource().get(userId).sendVerifyEmail("auth-server");
     }
 
     public boolean isKeycloakUserExist(String mobile) {
@@ -215,6 +205,4 @@ public class KeycloakService {
         }
         return null;
     }
-
-
 }

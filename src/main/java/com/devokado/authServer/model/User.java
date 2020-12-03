@@ -9,9 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
-import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -35,9 +33,9 @@ public class User {
 
     private String firstname;
     private String lastname;
-
     private Boolean active = true;
 
+    private Boolean mobileVerified = false;
     private String otp;
 
     @CreationTimestamp

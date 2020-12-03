@@ -1,18 +1,26 @@
 package com.devokado.authServer.service;
 
 import com.devokado.authServer.model.User;
+import com.devokado.authServer.model.request.*;
 import com.devokado.authServer.repository.UserRepository;
+import com.devokado.authServer.util.LocaleHelper;
+import com.devokado.authServer.util.Validate;
 import com.kavenegar.sdk.KavenegarApi;
 import com.kavenegar.sdk.models.SendResult;
 import org.apache.commons.lang3.StringUtils;
+import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
+import org.keycloak.representations.AccessToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Service
@@ -27,8 +35,14 @@ public class UserService extends KeycloakService {
     @Value("${otp.kavenegar.template}")
     private String template;
 
+    @Value("${otp.code.expiretime}")
+    private long otpExpireTime;
+
     @Autowired
     private UserRepository repository;
+
+    @Autowired
+    private LocaleHelper locale;
 
     public List<User> listAll() {
         return repository.findAll();
@@ -62,30 +76,37 @@ public class UserService extends KeycloakService {
         repository.deleteById(id);
     }
 
-    public User update(User user, Long id) {
-        User existUser = repository.findById(id).orElse(null);
-        if (existUser != null) {
-            if (user.getActive() != null)
-                existUser.setActive(user.getActive());
+    public void deleteAll() {
+        repository.deleteAll();
+    }
 
-            if (!StringUtils.isEmpty(existUser.getEmail()))
-                existUser.setEmail(user.getEmail());
+    public void partialUpdate(Map<String, Object> changes, String userId) {
+        User user = this.getWithKuuid(userId);
+        changes.forEach(
+                (change, value) -> {
+                    switch (change) {
+                        case "email":
+                            user.setEmail((String) value);
+                            break;
+                        case "firstname":
+                            user.setFirstname((String) value);
+                            break;
+                        case "lastname":
+                            user.setLastname((String) value);
+                            break;
+                        case "active":
+                            user.setActive((Boolean) value);
+                            break;
+                    }
+                }
+        );
+        this.save(user);
+    }
 
-            if (!StringUtils.isEmpty(existUser.getFirstname()))
-                existUser.setFirstname(user.getFirstname());
-
-            if (!StringUtils.isEmpty(existUser.getLastname()))
-                existUser.setLastname(user.getLastname());
-
-            if (!StringUtils.isEmpty(existUser.getPassword()))
-                existUser.setPassword(user.getPassword());
-
-            if (!StringUtils.isEmpty(existUser.getOtp()))
-                existUser.setOtp(user.getOtp());
-
-            return repository.save(existUser);
-        }
-        return null;
+    public void update(UserUpdateRequest updateRequest, String userId) {
+        User user = this.getWithKuuid(userId);
+        User updatedUser = updateRequest.create(user);
+        this.save(updatedUser);
     }
 
     public User updateWithKuuid(User user, String uuid) {
@@ -128,5 +149,82 @@ public class UserService extends KeycloakService {
         return api.verifyLookup(mobile, code, template);
     }
 
+    public int createUser(UserRequest userRequest) {
+        javax.ws.rs.core.Response response = this.createKeycloakUser(userRequest);
+        int responseStatus = response.getStatus();
+        if (responseStatus == 201) {
+            String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+            if (userRequest != null) {
+                User model = UserRequest.createUser(userRequest);
+                model.setKuuid(userId);
+                this.save(model);
+            }
+            return 201;
+        } else {
+            return responseStatus;
+        }
+    }
 
+    public String changePassword(String userId, ResetPasswordRequest resetPasswordModel) {
+        User userModel = this.getWithKuuid(userId);
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        if (bCryptPasswordEncoder.matches(resetPasswordModel.getOldPassword(), userModel.getPassword())) {
+            if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
+                userModel.setPassword(bCryptPasswordEncoder.encode(resetPasswordModel.getNewPassword()));
+                this.save(userModel);
+                this.updateKeycloakUserPassword(userId, resetPasswordModel.getNewPassword());
+                return locale.getString("updatePasswordSuccess");
+            } else
+                return locale.getString("passwordNotMatch");
+        } else return locale.getString("passwordIncorrect");
+    }
+
+    public String getUserIdWithToken(HttpServletRequest request) {
+        KeycloakAuthenticationToken principal = (KeycloakAuthenticationToken) request.getUserPrincipal();
+        return principal.getAccount().getKeycloakSecurityContext().getToken().getSubject();
+    }
+
+    public AccessToken getAccessToken(HttpServletRequest request) {
+        KeycloakAuthenticationToken principal = (KeycloakAuthenticationToken) request.getUserPrincipal();
+        return principal.getAccount().getKeycloakSecurityContext().getToken();
+    }
+
+    public String sendVerificationSMS(String userId, OtpRequest otpRequest) {
+        if (Validate.isValidMobile(otpRequest.getMobile())) {
+            User user = this.getWithKuuid(userId);
+            if (!user.getMobileVerified()) {
+                String code = this.createSMSCode();
+                long expireTime = otpExpireTime + System.currentTimeMillis();
+                user.setOtp(code + "_" + expireTime + "_" + 0);
+                this.save(user);
+                SendResult result = this.sendSMS(code, otpRequest.getMobile());
+                return locale.getString("codeSent");
+            } else return locale.getString("verificated");
+        } else
+            return locale.getString("invalidMobile");
+    }
+
+    public String verifyMobile(OtpVerificationRequest otpVerificationModel) {
+        User user = this.getWithMobile(otpVerificationModel.getMobile());
+        if (user != null) {
+            String[] otp = user.getOtp().split("_");
+            String otpCode = otp[0];
+            long otpExpireTime = Long.parseLong(otp[1]);
+            int codeStatus = Integer.parseInt(otp[2]);
+
+            if (!otpVerificationModel.getCode().equals(otpCode))
+                return locale.getString("codeNotValid");
+            else if (codeStatus == 1)
+                return locale.getString("codeExpired");
+            else if (System.currentTimeMillis() > otpExpireTime)
+                return locale.getString("codeExpired");
+            else {
+                user.setMobileVerified(true);
+                user.setOtp(otpCode + "_" + otpExpireTime + "_" + 1);
+                this.save(user);
+                return locale.getString("verificationIsOk");
+            }
+
+        } else return locale.getString("usernameNotFound");
+    }
 }
