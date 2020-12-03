@@ -61,7 +61,6 @@ public class UserController {
         }
     }
 
-
     /**
      * Login with username or email
      */
