@@ -1,5 +1,7 @@
 //package com.devokado.authServer.controller;
 //
+//import com.devokado.authServer.model.request.UserRequest;
+//import com.devokado.authServer.service.UserService;
 //import com.fasterxml.jackson.databind.ObjectMapper;
 //import org.junit.jupiter.api.DisplayName;
 //import org.junit.jupiter.api.Test;
@@ -18,9 +20,8 @@
 //import java.util.List;
 //
 //import static org.hamcrest.CoreMatchers.is;
-//import static org.mockito.ArgumentMatchers.eq;
 //import static org.mockito.Mockito.doReturn;
-//import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+//import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 //import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 //
 //@ExtendWith(SpringExtension.class)
@@ -28,29 +29,30 @@
 //@AutoConfigureMockMvc
 //public class PostControllerTest {
 //    @MockBean
-//    private PostService postService;
+//    private UserService userService;
 //
 //    @Autowired
 //    private MockMvc mockMvc;
 //
 //    @Test
-//    @DisplayName("Get all posts - GET /post")
-//    public void testGetPosts() throws Exception {
-//        Post mockPost1 = new Post(1L, "Title test1", "Content test1");
-//        Post mockPost2 = new Post(1L, "Title test2", "Content test2");
+//    @DisplayName("")
+//    public void testRegisterUser() throws Exception {
+//        UserRequest newUser = new UserRequest("09137911396",
+//                "s.a.modares.h@gmail.com", "1234", "Ali", "Modares", true);
 //
-//        List<Post> posts = new ArrayList<>();
-//        posts.add(mockPost1);
-//        posts.add(mockPost2);
+//        Post mockPost = new Post(1L, "Title test new", "Content test new");
 //
-//        doReturn(posts).when(postService).listAll();
+//        doReturn(mockPost).when(userService).save(ArgumentMatchers.any());
 //
-//        mockMvc.perform(MockMvcRequestBuilders.get("/post"))
-//                .andExpect(status().isOk())
+//        mockMvc.perform(post("/post")
+//                .contentType(MediaType.APPLICATION_JSON_VALUE)
+//                .content(new ObjectMapper().writeValueAsString(newPost)))
+//
+//                .andExpect(status().isCreated())
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
 //
-//                .andExpect(jsonPath("$[0].title", is("Title test1")))
-//                .andExpect(jsonPath("$[1].title", is("Title test2")));
+//                .andExpect(jsonPath("$.title", is("Title test new")))
+//                .andExpect(jsonPath("$.content", is("Content test new")));
 //    }
 //
 //    @Test

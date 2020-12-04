@@ -83,9 +83,11 @@ public class KeycloakService {
                 passwordCred.setTemporary(false);
                 passwordCred.setType(CredentialRepresentation.PASSWORD);
                 passwordCred.setValue(model.getPassword());
-
                 // Set password credential
                 userResource.get(userId).resetPassword(passwordCred);
+                if (!model.getEmail().isEmpty())
+                    //send email
+                    sendVerifyEmail(userId);
 
                 // set role
                 RealmResource realmResource = getKeycloakRealmResource();
@@ -174,7 +176,7 @@ public class KeycloakService {
     }
 
     public void sendVerifyEmail(String userId) {
-        getKeycloakUserResource().get(userId).sendVerifyEmail("auth-server");
+        getKeycloakUserResource().get(userId).sendVerifyEmail();
     }
 
     public boolean isKeycloakUserExist(String mobile) {

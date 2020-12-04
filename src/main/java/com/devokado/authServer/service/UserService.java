@@ -5,6 +5,8 @@ import com.devokado.authServer.model.request.*;
 import com.devokado.authServer.repository.UserRepository;
 import com.devokado.authServer.util.LocaleHelper;
 import com.devokado.authServer.util.Validate;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kavenegar.sdk.KavenegarApi;
 import com.kavenegar.sdk.models.SendResult;
 import org.apache.commons.lang3.StringUtils;
@@ -17,8 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -80,33 +84,29 @@ public class UserService extends KeycloakService {
         repository.deleteAll();
     }
 
-    public void partialUpdate(Map<String, Object> changes, String userId) {
+    public User partialUpdate(UserPatchRequest userPatchRequest, String userId) {
         User user = this.getWithKuuid(userId);
-        changes.forEach(
-                (change, value) -> {
-                    switch (change) {
-                        case "email":
-                            user.setEmail((String) value);
-                            break;
-                        case "firstname":
-                            user.setFirstname((String) value);
-                            break;
-                        case "lastname":
-                            user.setLastname((String) value);
-                            break;
-                        case "active":
-                            user.setActive((Boolean) value);
-                            break;
-                    }
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> changes = mapper.convertValue(userPatchRequest, new TypeReference<>() {});
+
+        changes.forEach((k, v) -> {
+            Field field = ReflectionUtils.findField(User.class, k);
+            if (field != null) {
+                if (v != null) {
+                    field.setAccessible(true);
+                    ReflectionUtils.setField(field, user, v);
                 }
-        );
-        this.save(user);
+            }
+        });
+
+        return this.save(user);
     }
 
-    public void update(UserUpdateRequest updateRequest, String userId) {
+    public User update(UserUpdateRequest updateRequest, String userId) {
         User user = this.getWithKuuid(userId);
         User updatedUser = updateRequest.create(user);
-        this.save(updatedUser);
+        return this.save(updatedUser);
     }
 
     public User updateWithKuuid(User user, String uuid) {

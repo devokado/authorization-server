@@ -20,7 +20,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.ws.rs.core.Context;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 @RestController
@@ -156,10 +155,10 @@ public class UserController {
      * Update partial user data
      */
     @PatchMapping("/me")
-    public ResponseEntity<?> patchUpdate(HttpServletRequest request, @RequestBody Map<String, Object> changes) {
+    public ResponseEntity<?> patchUpdate(HttpServletRequest request, @RequestBody UserPatchRequest userPatchRequest) {
         String userId = userService.getUserIdWithToken(request);
-        userService.partialUpdate(changes, userId);
-        return ResponseEntity.ok(Response.create(locale.getString("userUpdateSuccess"), request));
+        User updatedUser = userService.partialUpdate(userPatchRequest, userId);
+        return ResponseEntity.ok(updatedUser);
     }
 
     /**
@@ -169,8 +168,8 @@ public class UserController {
     public ResponseEntity<?> putUpdate(HttpServletRequest request,
                                        @Valid @RequestBody UserUpdateRequest updateRequest) {
         String userId = userService.getUserIdWithToken(request);
-        userService.update(updateRequest, userId);
-        return ResponseEntity.ok(Response.create(locale.getString("userUpdateSuccess"), request));
+        User updatedUser = userService.update(updateRequest, userId);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PostMapping("/verify")
