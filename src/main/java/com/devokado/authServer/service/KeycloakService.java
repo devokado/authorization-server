@@ -12,21 +12,16 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.keycloak.TokenVerifier;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.common.VerificationException;
-import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,48 +58,37 @@ public class KeycloakService {
 
     public javax.ws.rs.core.Response createKeycloakUser(UserRequest model) {
         int statusId;
+        UsersResource userResource = getKeycloakUserResource();
 
-        try {
-            UsersResource userResource = getKeycloakUserResource();
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername(model.getMobile());
+        user.setEmail(model.getEmail());
+        user.setEnabled(model.getActive());
+        javax.ws.rs.core.Response result = userResource.create(user);
 
-            UserRepresentation user = new UserRepresentation();
-            user.setUsername(model.getMobile());
-            user.setEmail(model.getEmail());
-            user.setEnabled(model.getActive());
-            javax.ws.rs.core.Response result = userResource.create(user);
+        statusId = result.getStatus();
 
-            statusId = result.getStatus();
+        if (statusId == 201) {
+            String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
 
-            if (statusId == 201) {
-                String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+            // Define password credential
+            CredentialRepresentation passwordCred = new CredentialRepresentation();
+            passwordCred.setTemporary(false);
+            passwordCred.setType(CredentialRepresentation.PASSWORD);
+            passwordCred.setValue(model.getPassword());
+            // Set password credential
+            userResource.get(userId).resetPassword(passwordCred);
 
-                // Define password credential
-                CredentialRepresentation passwordCred = new CredentialRepresentation();
-                passwordCred.setTemporary(false);
-                passwordCred.setType(CredentialRepresentation.PASSWORD);
-                passwordCred.setValue(model.getPassword());
-                // Set password credential
-                userResource.get(userId).resetPassword(passwordCred);
-                if (!model.getEmail().isEmpty())
-                    //send email
-                    sendVerifyEmail(userId);
-
-                // set role
-                RealmResource realmResource = getKeycloakRealmResource();
-                RoleRepresentation savedRoleRepresentation = realmResource.roles().get("app-user").toRepresentation();
-                realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            // set role
+            RealmResource realmResource = getKeycloakRealmResource();
+            RoleRepresentation savedRoleRepresentation = realmResource.roles().get("app-user").toRepresentation();
+            realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
         }
-        return null;
+        return result;
     }
 
-    public String createToken(LoginRequest loginRequest) {
-        String response = null;
+    public HttpResponse createToken(LoginRequest loginRequest) {
+        HttpResponse response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
             urlParameters.add(new BasicNameValuePair("grant_type", loginRequest.getGrantType()));
@@ -122,8 +106,8 @@ public class KeycloakService {
         return response;
     }
 
-    public String getRefreshToken(RefreshTokenRequest refreshTokenRequest) {
-        String response = null;
+    public HttpResponse getRefreshToken(RefreshTokenRequest refreshTokenRequest) {
+        HttpResponse response = null;
         try {
 
             List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
@@ -141,21 +125,11 @@ public class KeycloakService {
         return response;
     }
 
-    private String sendPost(List<NameValuePair> urlParameters) throws Exception {
-
+    private HttpResponse sendPost(List<NameValuePair> urlParameters) throws Exception {
         HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(serverUrl + "/realms/" + realm + "/protocol/openid-connect/token");
         post.setEntity(new UrlEncodedFormEntity(urlParameters));
-        HttpResponse response = client.execute(post);
-        BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-
-        StringBuilder result = new StringBuilder();
-        String line = "";
-        while ((line = rd.readLine()) != null) {
-            result.append(line);
-        }
-
-        return result.toString();
+        return client.execute(post);
     }
 
     public void logoutKeycloakUser(String token) {
@@ -177,34 +151,5 @@ public class KeycloakService {
 
     public void sendVerifyEmail(String userId) {
         getKeycloakUserResource().get(userId).sendVerifyEmail();
-    }
-
-    public boolean isKeycloakUserExist(String mobile) {
-        List<UserRepresentation> users = getKeycloakRealmResource().users().list();
-        for (UserRepresentation user : users) {
-//            String userMobile = String.valueOf(user.getAttributes().get("mobile"));
-            return user.getUsername().equals(mobile);
-        }
-        return false;
-    }
-
-    public String getKeycloakUserId(String username) {
-        List<UserRepresentation> users = getKeycloakRealmResource().users().list();
-        for (UserRepresentation user : users) {
-            if (user.getUsername().equals(username)) {
-                return user.getId();
-            }
-        }
-        return null;
-    }
-
-    public AccessToken tokenParser(String token) {
-        try {
-            String[] jwt = token.split(" ");
-            return TokenVerifier.create(jwt[1], AccessToken.class).getToken();
-        } catch (VerificationException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 }

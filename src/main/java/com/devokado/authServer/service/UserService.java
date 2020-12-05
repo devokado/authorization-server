@@ -9,14 +9,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kavenegar.sdk.KavenegarApi;
 import com.kavenegar.sdk.models.SendResult;
-import org.apache.commons.lang3.StringUtils;
 import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
 import org.keycloak.representations.AccessToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
@@ -52,28 +49,12 @@ public class UserService extends KeycloakService {
         return repository.findAll();
     }
 
-    public Page<User> listAllPagination(Pageable pageable) {
-        return repository.findAll(pageable);
-    }
-
-    public List<User> listAllSorting(Sort sort) {
-        return repository.findAll(sort);
-    }
-
     public User save(User user) {
         return repository.save(user);
     }
 
     public User get(Long id) {
         return repository.findById(id).orElse(null);
-    }
-
-    public User getWithKuuid(String uuid) {
-        return repository.findByKuuid(uuid).orElse(null);
-    }
-
-    public User getWithMobile(String mobile) {
-        return repository.findByMobile(mobile).orElse(null);
     }
 
     public void delete(Long id) {
@@ -84,11 +65,20 @@ public class UserService extends KeycloakService {
         repository.deleteAll();
     }
 
+    public User getWithKuuid(String uuid) {
+        return repository.findByKuuid(uuid).orElse(null);
+    }
+
+    public User getWithMobile(String mobile) {
+        return repository.findByMobile(mobile).orElse(null);
+    }
+
     public User partialUpdate(UserPatchRequest userPatchRequest, String userId) {
-        User user = this.getWithKuuid(userId);
+        User user = getWithKuuid(userId);
 
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> changes = mapper.convertValue(userPatchRequest, new TypeReference<>() {});
+        Map<String, Object> changes = mapper.convertValue(userPatchRequest, new TypeReference<>() {
+        });
 
         changes.forEach((k, v) -> {
             Field field = ReflectionUtils.findField(User.class, k);
@@ -104,34 +94,9 @@ public class UserService extends KeycloakService {
     }
 
     public User update(UserUpdateRequest updateRequest, String userId) {
-        User user = this.getWithKuuid(userId);
+        User user = getWithKuuid(userId);
         User updatedUser = updateRequest.create(user);
-        return this.save(updatedUser);
-    }
-
-    public User updateWithKuuid(User user, String uuid) {
-        User existUser = repository.findByKuuid(uuid).orElse(null);
-        if (existUser != null) {
-            if (user.getActive() != null)
-                existUser.setActive(user.getActive());
-            if (!StringUtils.isEmpty(existUser.getEmail()))
-                existUser.setEmail(user.getEmail());
-
-            if (!StringUtils.isEmpty(existUser.getFirstname()))
-                existUser.setFirstname(user.getFirstname());
-
-            if (!StringUtils.isEmpty(existUser.getLastname()))
-                existUser.setLastname(user.getLastname());
-
-            if (!StringUtils.isEmpty(existUser.getPassword()))
-                existUser.setPassword(user.getPassword());
-
-            if (!StringUtils.isEmpty(existUser.getOtp()))
-                existUser.setOtp(user.getOtp());
-
-            return repository.save(existUser);
-        }
-        return null;
+        return save(updatedUser);
     }
 
     public String createSMSCode() {
@@ -150,23 +115,25 @@ public class UserService extends KeycloakService {
     }
 
     public int createUser(UserRequest userRequest) {
-        javax.ws.rs.core.Response response = this.createKeycloakUser(userRequest);
+        javax.ws.rs.core.Response response = createKeycloakUser(userRequest);
         int responseStatus = response.getStatus();
         if (responseStatus == 201) {
             String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-            if (userRequest != null) {
+            try {
                 User model = UserRequest.createUser(userRequest);
                 model.setKuuid(userId);
                 this.save(model);
+                return 201;
+            } catch (DataIntegrityViolationException e) {
+                return 409;
             }
-            return 201;
         } else {
             return responseStatus;
         }
     }
 
     public String changePassword(String userId, ResetPasswordRequest resetPasswordModel) {
-        User userModel = this.getWithKuuid(userId);
+        User userModel = getWithKuuid(userId);
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         if (bCryptPasswordEncoder.matches(resetPasswordModel.getOldPassword(), userModel.getPassword())) {
             if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
@@ -191,7 +158,7 @@ public class UserService extends KeycloakService {
 
     public String sendVerificationSMS(String userId, OtpRequest otpRequest) {
         if (Validate.isValidMobile(otpRequest.getMobile())) {
-            User user = this.getWithKuuid(userId);
+            User user = getWithKuuid(userId);
             if (!user.getMobileVerified()) {
                 String code = this.createSMSCode();
                 long expireTime = otpExpireTime + System.currentTimeMillis();
@@ -205,7 +172,7 @@ public class UserService extends KeycloakService {
     }
 
     public String verifyMobile(OtpVerificationRequest otpVerificationModel) {
-        User user = this.getWithMobile(otpVerificationModel.getMobile());
+        User user = getWithMobile(otpVerificationModel.getMobile());
         if (user != null) {
             String[] otp = user.getOtp().split("_");
             String otpCode = otp[0];
@@ -221,7 +188,7 @@ public class UserService extends KeycloakService {
             else {
                 user.setMobileVerified(true);
                 user.setOtp(otpCode + "_" + otpExpireTime + "_" + 1);
-                this.save(user);
+                save(user);
                 return locale.getString("verificationIsOk");
             }
 

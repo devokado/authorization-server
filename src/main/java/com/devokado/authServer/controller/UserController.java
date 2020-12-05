@@ -8,6 +8,8 @@ import com.devokado.authServer.util.LocaleHelper;
 import com.kavenegar.sdk.excepctions.ApiException;
 import com.kavenegar.sdk.excepctions.HttpException;
 import lombok.val;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.jboss.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,7 +21,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.ws.rs.core.Context;
-import java.util.List;
+import java.io.IOException;
 import java.util.NoSuchElementException;
 
 @RestController
@@ -66,11 +68,11 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginModel) {
         try {
-            val token = userService.createToken(loginModel);
-            return ResponseEntity.ok()
+            HttpResponse response = userService.createToken(loginModel);
+            return ResponseEntity.status(response.getStatusLine().getStatusCode())
                     .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
-                    .body(token);
-        } catch (NoSuchElementException e) {
+                    .body(EntityUtils.toString(response.getEntity()));
+        } catch (NoSuchElementException | IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -81,11 +83,11 @@ public class UserController {
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshTokenModel) {
         try {
-            val token = userService.getRefreshToken(refreshTokenModel);
-            return ResponseEntity.ok()
+            val response = userService.getRefreshToken(refreshTokenModel);
+            return ResponseEntity.status(response.getStatusLine().getStatusCode())
                     .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
-                    .body(token);
-        } catch (NoSuchElementException e) {
+                    .body(EntityUtils.toString(response.getEntity()));
+        } catch (NoSuchElementException | IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -172,19 +174,7 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PostMapping("/verify")
-    public ResponseEntity<?> verify(HttpServletRequest request) {
-        String userId = userService.getUserIdWithToken(request);
-        userService.sendVerifyEmail(userId);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping()
-    public ResponseEntity<List<User>> list() {
-        return ResponseEntity.ok(userService.listAll());
-    }
-
-    @GetMapping("/delete")
+    @PutMapping("/delete")
     public ResponseEntity<?> delete() {
         userService.deleteAll();
         return ResponseEntity.ok().build();
