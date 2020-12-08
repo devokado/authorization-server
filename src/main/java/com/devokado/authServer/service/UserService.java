@@ -57,10 +57,7 @@ public class UserService extends KeycloakService {
         return repository.findById(id).orElse(null);
     }
 
-    public void delete(Long id) {
-        repository.deleteById(id);
-    }
-
+    //todo delete this function
     public void deleteAll() {
         repository.deleteAll();
     }

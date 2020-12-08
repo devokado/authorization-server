@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "kuuid": "865d7c3c-7dac-41d6-a811-69f6f98d9858",
+    "mobile": "09123456789",
+    "password": "$2a$10$1XArKrkY5S10KZ0yHffOm.MwBL79ecH9KRx/bFE/YnlIDzye7F.yK",
+    "email": "messi@gmail.com",
+    "firstname": "Lionel",
+    "lastname": "Messi",
+    "active": true,
+    "mobileVerified": false,
+    "otp": null,
+    "cdt": "2020-12-05T19:52:33.182216",
+    "udt": "2020-12-05T19:52:33.182252"
+  }
+]
