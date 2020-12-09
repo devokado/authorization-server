@@ -12,7 +12,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -27,18 +26,12 @@ public class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
-    private static final File DATA_JSON = Paths.get("src", "test", "resources", "users.json").toFile();
+    private final File DATA_JSON = Paths.get("src", "test", "resources", "users.json").toFile();
 
     @BeforeEach
     public void setup() throws IOException {
         User[] users = new ObjectMapper().readValue(DATA_JSON, User[].class);
-
         Arrays.stream(users).forEach(userRepository::save);
-    }
-
-    @AfterEach
-    public void cleanup() {
-        userRepository.deleteAll();
     }
 
     @Test
@@ -56,15 +49,15 @@ public class UserRepositoryTest {
         Optional<User> user = userRepository.findByMobile("09123456789");
 
         Assertions.assertNotNull(user);
-        Assertions.assertEquals(user.get().getId(), 1);
+        Assertions.assertEquals(user.get().getFirstname(), "Lionel");
+        Assertions.assertEquals(user.get().getLastname(), "Messi");
     }
 
     @Test
     @DisplayName("Test user saved successfully")
     public void testUserSavedSuccessfully() {
-        User newUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", new BCryptPasswordEncoder().encode("1234"),
-                "test@gmail.com", "User firstname", "User lastname",
-                true, false, "", LocalDateTime.now(), LocalDateTime.now());
+        User newUser = new User("09123456788", new BCryptPasswordEncoder().encode("1234"),
+                "test@gmail.com", "User firstname", "User lastname");
 
         User user = userRepository.save(newUser);
 
@@ -79,6 +72,11 @@ public class UserRepositoryTest {
         userRepository.deleteById(1L);
 
         Assertions.assertEquals(0L, userRepository.count());
+    }
+
+    @AfterEach
+    public void cleanup() {
+        userRepository.deleteAll();
     }
 
 }

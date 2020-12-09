@@ -265,7 +265,7 @@ public class UserServiceTest {
         User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false,
-                "123456_" + time +"_0",
+                "123456_" + time + "_0",
                 LocalDateTime.now(), LocalDateTime.now());
 
         doReturn(Optional.of(mockUser)).when(userRepository).findByMobile(mockUser.getMobile());
@@ -282,7 +282,7 @@ public class UserServiceTest {
         User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false,
-                "123456_" + time +"_0",
+                "123456_" + time + "_0",
                 LocalDateTime.now(), LocalDateTime.now());
 
         doReturn(Optional.of(mockUser)).when(userRepository).findByMobile(mockUser.getMobile());
@@ -299,7 +299,7 @@ public class UserServiceTest {
         User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false,
-                "123456_" + time +"_0",
+                "123456_" + time + "_0",
                 LocalDateTime.now(), LocalDateTime.now());
 
         doReturn(Optional.of(mockUser)).when(userRepository).findByMobile("09123456799");
@@ -316,7 +316,7 @@ public class UserServiceTest {
         User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false,
-                "123456_" + time +"_0",
+                "123456_" + time + "_0",
                 LocalDateTime.now(), LocalDateTime.now());
 
         doReturn(Optional.of(mockUser)).when(userRepository).findByMobile(mockUser.getMobile());
@@ -333,7 +333,7 @@ public class UserServiceTest {
         User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false,
-                "123456_" + time +"_1",
+                "123456_" + time + "_1",
                 LocalDateTime.now(), LocalDateTime.now());
 
         doReturn(Optional.of(mockUser)).when(userRepository).findByMobile(mockUser.getMobile());
@@ -341,5 +341,19 @@ public class UserServiceTest {
         String message = userService.verifyMobile(new OtpVerificationRequest(mockUser.getMobile(), "123456"));
 
         Assertions.assertEquals(locale.getString("codeExpired"), message);
+    }
+
+    @Test
+    @DisplayName("Create user")
+    public void testCreateUser() {
+//        UserRequest userRequest = new UserRequest("09137911396", "samdh@gmail.com", "1234", "Ali", "Modares", true);
+//        Response.ResponseBuilder rs = new Response.ResponseBuilder();
+//        Response.created(URI.create(""));
+//        doReturn(Response.created(URI.create(""))).when(userService).createKeycloakUser(userRequest);
+//        doThrow().when(userService).createKeycloakUser(userRequest);
+
+//        int status = userService.createUser(userRequest);
+//
+//        Assertions.assertEquals(201, status);
     }
 }
