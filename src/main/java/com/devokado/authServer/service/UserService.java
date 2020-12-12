@@ -1,5 +1,6 @@
 package com.devokado.authServer.service;
 
+import com.devokado.authServer.controller.UserController;
 import com.devokado.authServer.model.User;
 import com.devokado.authServer.model.request.*;
 import com.devokado.authServer.repository.UserRepository;
@@ -9,8 +10,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kavenegar.sdk.KavenegarApi;
 import com.kavenegar.sdk.models.SendResult;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
+import org.jboss.logging.Logger;
 import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
-import org.keycloak.representations.AccessToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +50,8 @@ public class UserService extends KeycloakService {
     @Autowired
     private LocaleHelper locale;
 
+    private static final Logger logger = Logger.getLogger(UserController.class);
+
     public List<User> listAll() {
         return repository.findAll();
     }
@@ -55,11 +62,6 @@ public class UserService extends KeycloakService {
 
     public User get(Long id) {
         return repository.findById(id).orElse(null);
-    }
-
-    //todo delete this function
-    public void deleteAll() {
-        repository.deleteAll();
     }
 
     public User getWithKuuid(String uuid) {
@@ -97,13 +99,9 @@ public class UserService extends KeycloakService {
     }
 
     public String createSMSCode() {
-        if (otpCodeSize < 1) {
-            throw new RuntimeException("Number of digits must be bigger than 0");
-        }
-        double maxValue = Math.pow(10.0, otpCodeSize); // 10 ^ nrOfDigits;
-        Random r = new Random();
-        long code = (long) (r.nextFloat() * maxValue);
-        return Long.toString(code);
+        return String.valueOf(otpCodeSize < 1 ? 0 : new Random()
+                .nextInt((9 * (int) Math.pow(10, otpCodeSize - 1)) - 1)
+                + (int) Math.pow(10, otpCodeSize - 1));
     }
 
     public SendResult sendSMS(String code, String mobile) {
@@ -112,7 +110,7 @@ public class UserService extends KeycloakService {
     }
 
     public int createUser(UserRequest userRequest) {
-        javax.ws.rs.core.Response response = createKeycloakUser(userRequest);
+        Response response = createKeycloakUser(userRequest);
         int responseStatus = response.getStatus();
         if (responseStatus == 201) {
             String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
@@ -130,27 +128,29 @@ public class UserService extends KeycloakService {
     }
 
     public String changePassword(String userId, ResetPasswordRequest resetPasswordModel) {
-        User userModel = getWithKuuid(userId);
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        if (bCryptPasswordEncoder.matches(resetPasswordModel.getOldPassword(), userModel.getPassword())) {
-            if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
-                userModel.setPassword(bCryptPasswordEncoder.encode(resetPasswordModel.getNewPassword()));
-                this.save(userModel);
-                this.updateKeycloakUserPassword(userId, resetPasswordModel.getNewPassword());
-                return locale.getString("updatePasswordSuccess");
-            } else
-                return locale.getString("passwordNotMatch");
-        } else return locale.getString("passwordIncorrect");
+        try {
+            User userModel = getWithKuuid(userId);
+            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+            if (bCryptPasswordEncoder.matches(resetPasswordModel.getOldPassword(), userModel.getPassword())) {
+                if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
+                    HttpResponse response = this.updateKeycloakUserPassword(userId, resetPasswordModel.getNewPassword());
+                    if (response.getStatusLine().getStatusCode() == 204) {
+                        logger.error("change pass ok");
+                        userModel.setPassword(bCryptPasswordEncoder.encode(resetPasswordModel.getNewPassword()));
+                        this.save(userModel);
+                        return locale.getString("updatePasswordSuccess");
+                    } else return EntityUtils.toString(response.getEntity());
+                } else return locale.getString("passwordNotMatch");
+            } else return locale.getString("passwordIncorrect");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public String getUserIdWithToken(HttpServletRequest request) {
         KeycloakAuthenticationToken principal = (KeycloakAuthenticationToken) request.getUserPrincipal();
         return principal.getAccount().getKeycloakSecurityContext().getToken().getSubject();
-    }
-
-    public AccessToken getAccessToken(HttpServletRequest request) {
-        KeycloakAuthenticationToken principal = (KeycloakAuthenticationToken) request.getUserPrincipal();
-        return principal.getAccount().getKeycloakSecurityContext().getToken();
     }
 
     public String sendVerificationSMS(String userId, OtpRequest otpRequest) {
@@ -162,7 +162,9 @@ public class UserService extends KeycloakService {
                 user.setOtp(code + "_" + expireTime + "_" + 0);
                 this.save(user);
                 SendResult result = this.sendSMS(code, otpRequest.getMobile());
-                return locale.getString("codeSent");
+                if (result.getStatus() == 5)
+                    return locale.getString("codeSent");
+                else return locale.getString("failedSendSms");
             } else return locale.getString("verificated");
         } else
             return locale.getString("invalidMobile");

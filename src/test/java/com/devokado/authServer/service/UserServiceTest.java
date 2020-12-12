@@ -156,22 +156,6 @@ public class UserServiceTest {
         Assertions.assertEquals(newUser.getEmail(), updatePost.getEmail());
     }
 
-    //todo mock keycloak and kavenegar
-    @Test
-    @DisplayName("Change password success")
-    public void testChangePassword() {
-//        User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", new BCryptPasswordEncoder().encode("1234"),
-//                "test@gmail.com", "User firstname", "User lastname",
-//                true, false, "", LocalDateTime.now(), LocalDateTime.now());
-//
-//        doReturn(Optional.of(mockUser)).when(userRepository).findByKuuid(mockUser.getKuuid());
-//
-//        String message = userService.changePassword(mockUser.getKuuid(), new ResetPasswordRequest(
-//                "1234", "12345", "12345"));
-//
-//        Assertions.assertEquals(locale.getString("updatePasswordSuccess"), message);
-    }
-
     @Test
     @DisplayName("Change password not match")
     public void testChangePasswordNotMatch() {
@@ -210,16 +194,9 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("send sms")
-    public void testSendSms() {
-//        SendResult result = userService.sendSMS("123456","09137911396");
-//        Assertions.assertEquals(200, result.get);
-    }
-
-    @Test
     @DisplayName("send verification sms success")
     public void testSendVerificationSms() {
-        User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
+        User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09137911396", "1234",
                 "test@gmail.com", "User firstname", "User lastname",
                 true, false, "", LocalDateTime.now(), LocalDateTime.now());
 
@@ -228,6 +205,20 @@ public class UserServiceTest {
         String message = userService.sendVerificationSMS(mockUser.getKuuid(), new OtpRequest(mockUser.getMobile()));
 
         Assertions.assertEquals(locale.getString("codeSent"), message);
+    }
+
+    @Test
+    @DisplayName("send verification sms failed")
+    public void testSendVerificationSmsFailed() {
+        User mockUser = new User(1L, java.util.UUID.randomUUID().toString(), "09123456789", "1234",
+                "test@gmail.com", "User firstname", "User lastname",
+                true, false, "", LocalDateTime.now(), LocalDateTime.now());
+
+        doReturn(Optional.of(mockUser)).when(userRepository).findByKuuid(mockUser.getKuuid());
+
+        String message = userService.sendVerificationSMS(mockUser.getKuuid(), new OtpRequest(mockUser.getMobile()));
+
+        Assertions.assertEquals(locale.getString("failedSendSms"), message);
     }
 
     @Test
@@ -341,19 +332,5 @@ public class UserServiceTest {
         String message = userService.verifyMobile(new OtpVerificationRequest(mockUser.getMobile(), "123456"));
 
         Assertions.assertEquals(locale.getString("codeExpired"), message);
-    }
-
-    @Test
-    @DisplayName("Create user")
-    public void testCreateUser() {
-//        UserRequest userRequest = new UserRequest("09137911396", "samdh@gmail.com", "1234", "Ali", "Modares", true);
-//        Response.ResponseBuilder rs = new Response.ResponseBuilder();
-//        Response.created(URI.create(""));
-//        doReturn(Response.created(URI.create(""))).when(userService).createKeycloakUser(userRequest);
-//        doThrow().when(userService).createKeycloakUser(userRequest);
-
-//        int status = userService.createUser(userRequest);
-//
-//        Assertions.assertEquals(201, status);
     }
 }

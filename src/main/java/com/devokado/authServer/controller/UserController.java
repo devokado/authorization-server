@@ -173,14 +173,4 @@ public class UserController {
         User updatedUser = userService.update(updateRequest, userId);
         return ResponseEntity.ok(updatedUser);
     }
-
-    @PutMapping("/delete")
-    public ResponseEntity<?> delete() {
-        userService.deleteAll();
-        return ResponseEntity.ok().build();
-    }
-
-    //todo update email in keycloak when user updated(both put & patch) / if email is required for register this todo doesn't need
-    //todo send email verification programmatically
-    //todo handle keycloak and spring custom error message
 }
