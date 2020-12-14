@@ -3,7 +3,6 @@ package com.devokado.authServer.service;
 import com.devokado.authServer.controller.UserController;
 import com.devokado.authServer.model.request.LoginRequest;
 import com.devokado.authServer.model.request.RefreshTokenRequest;
-import com.devokado.authServer.model.request.UserRequest;
 import com.devokado.authServer.util.HttpHelper;
 import lombok.val;
 import org.apache.http.HttpResponse;
@@ -80,13 +79,12 @@ public class KeycloakService {
         realmResource.users().get(userId).roles().realmLevel().add(Collections.singletonList(savedRoleRepresentation));
     }
 
-    public Response createKeycloakUser(UserRequest model) {
+    public Response createKeycloakUser(long username, String password) {
         UsersResource userResource = getKeycloakUserResource();
         UserRepresentation user = new UserRepresentation();
-        user.setUsername(model.getMobile());
-        user.setEmail(model.getEmail());
-        user.setEnabled(model.getActive());
-        user.setCredentials(Collections.singletonList(createCredentialRepresentation(model.getPassword())));
+        user.setUsername(Long.toString(username));
+        user.setEnabled(true);
+        user.setCredentials(Collections.singletonList(createCredentialRepresentation(password)));
         Response result = userResource.create(user);
 
         if (result.getStatus() == 201) {
@@ -95,6 +93,10 @@ public class KeycloakService {
         }
 
         return result;
+    }
+
+    public String getKuuidFromResponse(Response response) {
+        return response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
     }
 
     public HttpResponse createToken(LoginRequest loginRequest) {

@@ -27,21 +27,19 @@ public class User {
     private String kuuid;
 
     @Column(unique = true, length = 32)
-    @NotNull
     private String mobile;
-    private String password;
 
     @Email
     @Column(unique = true, length = 32)
     private String email;
 
+    private long otpCdt;
+    private int otpStatus;
+
     private String firstname;
     private String lastname;
-    private Boolean active = true;
 
-    private Boolean mobileVerified = false;
-    private String otp;
-
+    private Boolean status = true;
     @CreationTimestamp
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -53,9 +51,19 @@ public class User {
 
     public User(String mobile, String password, @Email String email, String firstname, String lastname) {
         this.mobile = mobile;
-        this.password = password;
         this.email = email;
         this.firstname = firstname;
         this.lastname = lastname;
+    }
+
+    public User(String kuuid, String mobile, @Email String email, long otpCdt, int otpStatus, String firstname, String lastname, Boolean status) {
+        this.kuuid = kuuid;
+        this.mobile = mobile;
+        this.email = email;
+        this.otpCdt = otpCdt;
+        this.otpStatus = otpStatus;
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.status = status;
     }
 }

@@ -33,11 +33,11 @@ public class UserRequest {
     public static User createUser(UserRequest registerRequest) {
         User user = new User();
         user.setMobile(registerRequest.getMobile());
-        user.setPassword(new BCryptPasswordEncoder().encode(registerRequest.getPassword()));
+//        user.setPassword(new BCryptPasswordEncoder().encode(registerRequest.getPassword()));
         user.setEmail(registerRequest.getEmail());
         user.setFirstname(registerRequest.getFirstname());
         user.setLastname(registerRequest.getLastname());
-        user.setActive(registerRequest.getActive());
+//        user.setActive(registerRequest.getActive());
         return user;
     }
 }

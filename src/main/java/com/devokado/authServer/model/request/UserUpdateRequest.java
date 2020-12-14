@@ -28,7 +28,7 @@ public class UserUpdateRequest {
         user.setEmail(this.getEmail());
         user.setFirstname(this.getFirstname());
         user.setLastname(this.getLastname());
-        user.setActive(this.getActive());
+//        user.setActive(this.getActive());
         return user;
     }
 }

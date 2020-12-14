@@ -15,13 +15,11 @@ public class UserPatchRequest {
     private String email;
     private String firstname;
     private String lastname;
-    private Boolean active = true;
 
     public User create(User user) {
         user.setEmail(this.getEmail());
         user.setFirstname(this.getFirstname());
         user.setLastname(this.getLastname());
-        user.setActive(this.getActive());
         return user;
     }
 }

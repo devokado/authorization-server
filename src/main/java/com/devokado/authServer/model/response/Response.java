@@ -15,7 +15,6 @@ public class Response {
     private int status;
     private String title;
     private String type;
-    @DateTimeFormat
     private LocalDateTime timestamp;
 
     public static Response create(int status, String title, HttpServletRequest request) {
