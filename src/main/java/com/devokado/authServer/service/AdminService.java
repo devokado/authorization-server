@@ -1,116 +1,56 @@
 package com.devokado.authServer.service;
 
+import com.devokado.authServer.exceptions.BadRequestException;
+import com.devokado.authServer.exceptions.CustomException;
+import com.devokado.authServer.exceptions.NotFoundException;
+import com.devokado.authServer.exceptions.RestException;
 import com.devokado.authServer.model.User;
-import com.devokado.authServer.model.request.UserPatchRequest;
-import com.devokado.authServer.model.request.UserUpdateRequest;
-import com.devokado.authServer.repository.UserRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.devokado.authServer.model.request.LoginRequest;
+import com.devokado.authServer.model.request.RegisterRequest;
+import com.devokado.authServer.model.request.ResetPasswordRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ReflectionUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import java.lang.reflect.Field;
-import java.util.Map;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.util.Optional;
 
 @Service
-public class AdminService extends KeycloakService {
+public class AdminService extends UserService {
 
-    @Autowired
-    private UserRepository repository;
-
-    public User save(User user) {
-        return repository.save(user);
+    public void registerUser(RegisterRequest registerRequest) {
+        User createdUser = this.save(registerRequest.asUser());
+        Response response = this.createKeycloakUser(createdUser.getId(), registerRequest.getPassword());
+        if (response.getStatus() == 201) {
+            createdUser.setKuuid(this.getKuuidFromResponse(response));
+            this.save(createdUser);
+        } else {
+            this.deleteById(createdUser.getId());
+            throw new RestException(locale.getString("failedToCreateUser"), HttpStatus.valueOf(response.getStatus()));
+        }
     }
 
-    public User get(Long id) {
-        return repository.findById(id).orElse(null);
+    public HttpResponse login(LoginRequest loginRequest) {
+        Optional<User> user = this.findByEmail(loginRequest.getUsername());
+        if (user.isPresent()) {
+            loginRequest.setUsername(user.get().getId().toString());
+            return this.generateToken(loginRequest);
+        } else throw new NotFoundException(locale.getString("userNotFound"));
     }
 
-//    public int createUser(UserRequest userRequest) {
-//        Response response = createKeycloakUser(userRequest);
-//        int responseStatus = response.getStatus();
-//        if (responseStatus == 201) {
-//            String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-//            try {
-//                User model = UserRequest.createUser(userRequest);
-//                model.setKuuid(userId);
-//                this.save(model);
-//                return 201;
-//            } catch (DataIntegrityViolationException e) {
-//                return 409;
-//            }
-//        } else {
-//            return responseStatus;
-//        }
-//    }
-
-//    public String changePassword(String userId, ResetPasswordRequest resetPasswordModel) {
-//        try {
-//            User userModel = getWithKuuid(userId);
-//            BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-//            if (bCryptPasswordEncoder.matches(resetPasswordModel.getOldPassword(), userModel.getPassword())) {
-//                if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
-//                    HttpResponse response = this.updateKeycloakUserPassword(userId, resetPasswordModel.getNewPassword());
-//                    if (response.getStatusLine().getStatusCode() == 204) {
-//                        logger.error("change pass ok");
-//                        userModel.setPassword(bCryptPasswordEncoder.encode(resetPasswordModel.getNewPassword()));
-//                        this.save(userModel);
-//                        return locale.getString("updatePasswordSuccess");
-//                    } else return EntityUtils.toString(response.getEntity());
-//                } else return locale.getString("passwordNotMatch");
-//            } else return locale.getString("passwordIncorrect");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
-
-    public String getUserIdWithToken(HttpServletRequest request) {
-        KeycloakAuthenticationToken principal = (KeycloakAuthenticationToken) request.getUserPrincipal();
-        return principal.getAccount().getKeycloakSecurityContext().getToken().getSubject();
+    public void changePassword(String userId, ResetPasswordRequest resetPasswordModel) {
+        try {
+            if (resetPasswordModel.getNewPassword().equals(resetPasswordModel.getConfirmation())) {
+                HttpResponse response = this.updateKeycloakUserPassword(userId, resetPasswordModel.getNewPassword());
+                if (response.getStatusLine().getStatusCode() != 204) {
+                    throw new CustomException(EntityUtils.toString(response.getEntity()), response.getStatusLine().getStatusCode());
+                }
+            } else throw new BadRequestException(locale.getString("passwordNotMatch"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
-//    public String sendVerificationSMS(String userId, OtpRequest otpRequest) {
-//        if (Validate.isValidMobile(otpRequest.getUsername())) {
-//            User user = getWithKuuid(userId);
-//            if (!user.getMobileVerified()) {
-//                String code = this.createSMSCode();
-//                long expireTime = otpExpireTime + System.currentTimeMillis();
-//                user.setOtp(code + "_" + expireTime + "_" + 0);
-//                this.save(user);
-//                SendResult result = this.sendSMS(code, otpRequest.getUsername());
-//                if (result.getStatus() == 5)
-//                    return locale.getString("codeSent");
-//                else return locale.getString("failedSendSms");
-//            } else return locale.getString("verificated");
-//        } else
-//            return locale.getString("invalidMobile");
-//    }
-//
-//    public String verifyMobile(OtpVerificationRequest otpVerificationModel) {
-//        User user = getWithMobile(otpVerificationModel.getMobile());
-//        if (user != null) {
-//            String[] otp = user.getOtp().split("_");
-//            String otpCode = otp[0];
-//            long otpExpireTime = Long.parseLong(otp[1]);
-//            int codeStatus = Integer.parseInt(otp[2]);
-//
-//            if (!otpVerificationModel.getCode().equals(otpCode))
-//                return locale.getString("codeNotValid");
-//            else if (codeStatus == 1)
-//                return locale.getString("codeExpired");
-//            else if (System.currentTimeMillis() > otpExpireTime)
-//                return locale.getString("codeExpired");
-//            else {
-//                user.setMobileVerified(true);
-//                user.setOtp(otpCode + "_" + otpExpireTime + "_" + 1);
-//                save(user);
-//                return locale.getString("verificationIsOk");
-//            }
-//
-//        } else return locale.getString("usernameNotFound");
-//    }
 }

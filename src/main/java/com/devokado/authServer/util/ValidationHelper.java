@@ -1,14 +1,12 @@
 package com.devokado.authServer.util;
 
-import lombok.val;
-
 import java.util.regex.Pattern;
 
-public class Validate {
+public class ValidationHelper {
     public static boolean isValidMobile(String mobile) {
         if (mobile.isEmpty())
             return false;
-        val chars = mobile.toCharArray();
+        char[] chars = mobile.toCharArray();
         for (Character c : chars) {
             if (!Character.isDigit(c)) {
                 return false;

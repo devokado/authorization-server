@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.ws.rs.core.Context;
 import java.io.IOException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/customers")
@@ -50,7 +49,7 @@ public class CustomerController {
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshTokenModel) {
         try {
-            HttpResponse response = customerService.getRefreshToken(refreshTokenModel);
+            HttpResponse response = customerService.refreshToken(refreshTokenModel);
             return ResponseEntity.status(response.getStatusLine().getStatusCode())
                     .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
                     .body(EntityUtils.toString(response.getEntity()));

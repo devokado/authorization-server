@@ -1,6 +1,5 @@
 package com.devokado.authServer.service;
 
-import com.devokado.authServer.controller.UserController;
 import com.devokado.authServer.model.request.LoginRequest;
 import com.devokado.authServer.model.request.RefreshTokenRequest;
 import com.devokado.authServer.util.HttpHelper;
@@ -43,7 +42,7 @@ public class KeycloakService {
     @Value("${admin.password}")
     private String adminPassword;
 
-    private static final Logger logger = Logger.getLogger(UserController.class);
+    private static final Logger logger = Logger.getLogger(KeycloakService.class);
 
     private Keycloak initialKeycloak() {
         return KeycloakBuilder.builder()
@@ -79,6 +78,22 @@ public class KeycloakService {
         realmResource.users().get(userId).roles().realmLevel().add(Collections.singletonList(savedRoleRepresentation));
     }
 
+    private HttpResponse adminAuthorization() {
+        HttpResponse response = null;
+        try {
+            List<NameValuePair> urlParameters = new ArrayList<>();
+            urlParameters.add(new BasicNameValuePair("grant_type", "password"));
+            urlParameters.add(new BasicNameValuePair("client_id", "admin-cli"));
+            urlParameters.add(new BasicNameValuePair("username", adminUsername));
+            urlParameters.add(new BasicNameValuePair("password", adminPassword));
+
+            response = HttpHelper.post(serverUrl + "/realms/master/protocol/openid-connect/token", urlParameters);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return response;
+    }
+
     public Response createKeycloakUser(long username, String password) {
         UsersResource userResource = getKeycloakUserResource();
         UserRepresentation user = new UserRepresentation();
@@ -99,7 +114,7 @@ public class KeycloakService {
         return response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
     }
 
-    public HttpResponse createToken(LoginRequest loginRequest) {
+    public HttpResponse generateToken(LoginRequest loginRequest) {
         HttpResponse response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
@@ -116,7 +131,7 @@ public class KeycloakService {
         return response;
     }
 
-    public HttpResponse getRefreshToken(RefreshTokenRequest refreshTokenRequest) {
+    public HttpResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
         HttpResponse response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
@@ -152,22 +167,6 @@ public class KeycloakService {
                         Map.of("Authorization", "Bearer " + json.get("access_token").toString(),
                                 "Content-Type", "application/json"));
             } else response = adminResponse;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return response;
-    }
-
-    public HttpResponse adminAuthorization() {
-        HttpResponse response = null;
-        try {
-            List<NameValuePair> urlParameters = new ArrayList<>();
-            urlParameters.add(new BasicNameValuePair("grant_type", "password"));
-            urlParameters.add(new BasicNameValuePair("client_id", "admin-cli"));
-            urlParameters.add(new BasicNameValuePair("username", adminUsername));
-            urlParameters.add(new BasicNameValuePair("password", adminPassword));
-
-            response = HttpHelper.post(serverUrl + "/realms/master/protocol/openid-connect/token", urlParameters);
         } catch (Exception e) {
             e.printStackTrace();
         }
