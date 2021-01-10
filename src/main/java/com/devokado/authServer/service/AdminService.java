@@ -5,12 +5,11 @@ import com.devokado.authServer.exceptions.CustomException;
 import com.devokado.authServer.exceptions.NotFoundException;
 import com.devokado.authServer.exceptions.RestException;
 import com.devokado.authServer.model.User;
-import com.devokado.authServer.model.request.LoginRequest;
+import com.devokado.authServer.model.request.AuthRequest;
 import com.devokado.authServer.model.request.RegisterRequest;
 import com.devokado.authServer.model.request.ResetPasswordRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +22,7 @@ public class AdminService extends UserService {
 
     public void registerUser(RegisterRequest registerRequest) {
         User createdUser = this.save(registerRequest.asUser());
-        Response response = this.createKeycloakUser(createdUser.getId(), registerRequest.getPassword());
+        Response response = this.createKeycloakUser("app-admin", createdUser.getId(), registerRequest.getPassword());
         if (response.getStatus() == 201) {
             createdUser.setKuuid(this.getKuuidFromResponse(response));
             this.save(createdUser);
@@ -33,11 +32,11 @@ public class AdminService extends UserService {
         }
     }
 
-    public HttpResponse login(LoginRequest loginRequest) {
-        Optional<User> user = this.findByEmail(loginRequest.getUsername());
+    public HttpResponse login(AuthRequest authRequest) {
+        Optional<User> user = this.findByEmail(authRequest.getUsername());
         if (user.isPresent()) {
-            loginRequest.setUsername(user.get().getId().toString());
-            return this.generateToken(loginRequest);
+            authRequest.setUsername(user.get().getId().toString());
+            return this.generateToken(authRequest);
         } else throw new NotFoundException(locale.getString("userNotFound"));
     }
 
@@ -52,5 +51,14 @@ public class AdminService extends UserService {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public HttpResponse prepareOAuth(AuthRequest authRequest) {
+        if (authRequest.getGrantType().equals("password")) {
+            return login(authRequest);
+        } else if (authRequest.getGrantType().equals("refresh_token")) {
+            return refreshToken(authRequest);
+        }
+        return null;
     }
 }

@@ -20,20 +20,20 @@ class SwaggerConfig {
         return new Docket(DocumentationType.SWAGGER_2)
                 .select()
                 .paths(PathSelectors.any())
-                .apis(RequestHandlerSelectors.any())
+//                .apis(RequestHandlerSelectors.any())
 //                .paths(PathSelectors.ant("/post/**"))
-//                .apis(RequestHandlerSelectors.basePackage("com.idco.mesghal"))
+                .apis(RequestHandlerSelectors.basePackage("com.devokado.authServer"))
                 .build()
                 .apiInfo(apiInfo());
     }
 
     private ApiInfo apiInfo() {
         return new ApiInfo(
-                "My REST API",
+                "Auth Server",
                 "",
-                "V2",
                 "",
-                new Contact("Ali Modares", "www.example.com", "s.a.modares.h@gmail.com"),
+                "",
+                new Contact("Ali Modares", "", "s.a.modares.h@gmail.com"),
                 "License of API", "API license URL", Collections.emptyList());
     }
 }

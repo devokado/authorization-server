@@ -1,5 +1,6 @@
 package com.devokado.authServer.controller;
 
+import com.devokado.authServer.exceptions.BadRequestException;
 import com.devokado.authServer.model.User;
 import com.devokado.authServer.model.request.*;
 import com.devokado.authServer.model.response.Response;
@@ -22,11 +23,14 @@ import java.io.IOException;
 @RequestMapping("/customers")
 public class CustomerController {
 
-    @Autowired
-    private CustomerService customerService;
+    private final CustomerService customerService;
+    private final LocaleHelper locale;
 
     @Autowired
-    LocaleHelper locale;
+    public CustomerController(CustomerService customerService, LocaleHelper locale) {
+        this.customerService = customerService;
+        this.locale = locale;
+    }
 
     @PostMapping("/authenticate")
     public ResponseEntity<?> authenticate(@Context HttpServletRequest request, @Valid @RequestBody OtpRequest otpRequest) {
@@ -34,39 +38,34 @@ public class CustomerController {
         return ResponseEntity.ok(Response.create(locale.getString("codeSent"), request));
     }
 
-    @PostMapping("/confirm")
-    public ResponseEntity<?> confirm(@Valid @RequestBody LoginRequest loginRequest) {
+    @PostMapping("/oauth")
+    public ResponseEntity<?> oAuth(@Valid @RequestBody AuthRequest authRequest) {
         try {
-            HttpResponse response = customerService.getOAuthTokenOtp(loginRequest);
-            return ResponseEntity.status(response.getStatusLine().getStatusCode())
-                    .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
-                    .body(EntityUtils.toString(response.getEntity()));
+            HttpResponse response = customerService.prepareOAuth(authRequest);
+            if (response == null) {
+                throw new BadRequestException(locale.getString("grantTypeInvalid"));
+            } else {
+                return ResponseEntity.status(response.getStatusLine().getStatusCode())
+                        .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
+                        .body(EntityUtils.toString(response.getEntity()));
+            }
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshTokenModel) {
-        try {
-            HttpResponse response = customerService.refreshToken(refreshTokenModel);
-            return ResponseEntity.status(response.getStatusLine().getStatusCode())
-                    .contentType(MediaType.valueOf(MediaType.APPLICATION_JSON_VALUE))
-                    .body(EntityUtils.toString(response.getEntity()));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @PatchMapping("/{id}")
-    public ResponseEntity<?> patchUpdate(@PathVariable long id, @RequestBody UserPatchRequest userPatchRequest) {
-        User updatedUser = customerService.partialUpdate(userPatchRequest, id);
+    @PatchMapping("/me")
+    public ResponseEntity<?> patchUpdate(HttpServletRequest request, @RequestBody UserPatchRequest userPatchRequest) {
+        String userId = customerService.extractAccessToken(request).getPreferredUsername();
+        User updatedUser = customerService.partialUpdate(userPatchRequest, Long.getLong(userId));
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> putUpdate(@PathVariable long id, @Valid @RequestBody UserUpdateRequest updateRequest) {
-        User updatedUser = customerService.update(updateRequest, id);
+    @PutMapping("/me")
+    public ResponseEntity<?> putUpdate(HttpServletRequest request,
+                                       @Valid @RequestBody UserUpdateRequest updateRequest) {
+        String userId = customerService.extractAccessToken(request).getPreferredUsername();
+        User updatedUser = customerService.update(updateRequest, Long.getLong(userId));
         return ResponseEntity.ok(updatedUser);
     }
 }

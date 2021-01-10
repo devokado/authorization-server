@@ -1,9 +1,7 @@
 package com.devokado.authServer.service;
 
-import com.devokado.authServer.model.request.LoginRequest;
-import com.devokado.authServer.model.request.RefreshTokenRequest;
+import com.devokado.authServer.model.request.AuthRequest;
 import com.devokado.authServer.util.HttpHelper;
-import lombok.val;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -56,7 +54,7 @@ public class KeycloakService {
     }
 
     private RealmResource getKeycloakRealmResource() {
-        val keycloak = initialKeycloak();
+        Keycloak keycloak = initialKeycloak();
         return keycloak.realm(realm);
     }
 
@@ -72,9 +70,9 @@ public class KeycloakService {
         return credentialRepresentation;
     }
 
-    private void assignRealmRole(String userId) {
+    private void assignRealmRole(String roleName, String userId) {
         RealmResource realmResource = getKeycloakRealmResource();
-        RoleRepresentation savedRoleRepresentation = realmResource.roles().get("app-user").toRepresentation();
+        RoleRepresentation savedRoleRepresentation = realmResource.roles().get(roleName).toRepresentation();
         realmResource.users().get(userId).roles().realmLevel().add(Collections.singletonList(savedRoleRepresentation));
     }
 
@@ -94,7 +92,7 @@ public class KeycloakService {
         return response;
     }
 
-    public Response createKeycloakUser(long username, String password) {
+    public Response createKeycloakUser(String roleName, long username, String password) {
         UsersResource userResource = getKeycloakUserResource();
         UserRepresentation user = new UserRepresentation();
         user.setUsername(Long.toString(username));
@@ -104,7 +102,7 @@ public class KeycloakService {
 
         if (result.getStatus() == 201) {
             String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-            assignRealmRole(userId);
+            assignRealmRole(roleName, userId);
         }
 
         return result;
@@ -114,15 +112,15 @@ public class KeycloakService {
         return response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
     }
 
-    public HttpResponse generateToken(LoginRequest loginRequest) {
+    public HttpResponse generateToken(AuthRequest authRequest) {
         HttpResponse response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
-            urlParameters.add(new BasicNameValuePair("grant_type", loginRequest.getGrantType()));
-            urlParameters.add(new BasicNameValuePair("client_id", loginRequest.getClientId()));
-            urlParameters.add(new BasicNameValuePair("username", loginRequest.getUsername()));
-            urlParameters.add(new BasicNameValuePair("password", loginRequest.getPassword()));
-            urlParameters.add(new BasicNameValuePair("client_secret", loginRequest.getClientSecret()));
+            urlParameters.add(new BasicNameValuePair("grant_type", authRequest.getGrantType()));
+            urlParameters.add(new BasicNameValuePair("client_id", authRequest.getClientId()));
+            urlParameters.add(new BasicNameValuePair("username", authRequest.getUsername()));
+            urlParameters.add(new BasicNameValuePair("password", authRequest.getPassword()));
+            urlParameters.add(new BasicNameValuePair("client_secret", authRequest.getClientSecret()));
             response = HttpHelper.post(serverUrl + "/realms/" + realm + "/protocol/openid-connect/token", urlParameters);
         } catch (Exception e) {
             e.printStackTrace();
@@ -131,14 +129,14 @@ public class KeycloakService {
         return response;
     }
 
-    public HttpResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+    public HttpResponse refreshToken(AuthRequest authRequest) {
         HttpResponse response = null;
         try {
             List<NameValuePair> urlParameters = new ArrayList<>();
-            urlParameters.add(new BasicNameValuePair("refresh_token", refreshTokenRequest.getRefreshToken()));
-            urlParameters.add(new BasicNameValuePair("grant_type", refreshTokenRequest.getGrantType()));
-            urlParameters.add(new BasicNameValuePair("client_id", refreshTokenRequest.getClientId()));
-            urlParameters.add(new BasicNameValuePair("client_secret", refreshTokenRequest.getClientSecret()));
+            urlParameters.add(new BasicNameValuePair("refresh_token", authRequest.getRefreshToken()));
+            urlParameters.add(new BasicNameValuePair("grant_type", authRequest.getGrantType()));
+            urlParameters.add(new BasicNameValuePair("client_id", authRequest.getClientId()));
+            urlParameters.add(new BasicNameValuePair("client_secret", authRequest.getClientSecret()));
             response = HttpHelper.post(serverUrl + "/realms/" + realm + "/protocol/openid-connect/token", urlParameters);
         } catch (Exception e) {
             e.printStackTrace();

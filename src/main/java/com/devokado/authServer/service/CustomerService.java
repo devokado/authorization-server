@@ -2,7 +2,7 @@ package com.devokado.authServer.service;
 
 import com.devokado.authServer.exceptions.*;
 import com.devokado.authServer.model.User;
-import com.devokado.authServer.model.request.LoginRequest;
+import com.devokado.authServer.model.request.AuthRequest;
 import com.devokado.authServer.model.request.OtpRequest;
 import com.devokado.authServer.util.StringHelper;
 import com.devokado.authServer.util.ValidationHelper;
@@ -40,8 +40,12 @@ public class CustomerService extends UserService {
     @Value("${otp.code.expiretime}")
     private long otpExpireTime;
 
-    @Autowired
     private JavaMailSender emailSender;
+
+    @Autowired
+    public void init(JavaMailSender emailSender) {
+        this.emailSender = emailSender;
+    }
 
     public void otp(OtpRequest otpRequest) {
         String identifier = otpRequest.getUsername();
@@ -83,7 +87,7 @@ public class CustomerService extends UserService {
         }
         User createdUser = this.save(user);
         String code = StringHelper.generateCode(otpCodeSize);
-        Response response = this.createKeycloakUser(createdUser.getId(), code);
+        Response response = this.createKeycloakUser("app-customer", createdUser.getId(), code);
         if (response.getStatus() == 201) {
             createdUser.setKuuid(this.getKuuidFromResponse(response));
             this.save(createdUser);
@@ -134,19 +138,19 @@ public class CustomerService extends UserService {
         emailSender.send(message);
     }
 
-    public HttpResponse getOAuthTokenOtp(LoginRequest loginRequest) {
-        String identifier = loginRequest.getUsername();
+    public HttpResponse getOAuthTokenOtp(AuthRequest authRequest) {
+        String identifier = authRequest.getUsername();
         if (ValidationHelper.isValidMobile(identifier)) {
             Optional<User> user = this.findByMobile(identifier);
-            return provideOAuth(user.orElseThrow(), loginRequest);
+            return provideOAuth(user.orElseThrow(), authRequest);
         } else if (ValidationHelper.isValidMail(identifier)) {
             Optional<User> user = this.findByEmail(identifier);
-            return provideOAuth(user.orElseThrow(), loginRequest);
+            return provideOAuth(user.orElseThrow(), authRequest);
         } else
             throw new BadRequestException(locale.getString("invalidMobileOrEmail"));
     }
 
-    private HttpResponse provideOAuth(User user, LoginRequest loginRequest) {
+    private HttpResponse provideOAuth(User user, AuthRequest authRequest) {
         if (user.getOtpStatus() == 1)
             throw new NotAvailableException(locale.getString("codeExpired"));
         else if (System.currentTimeMillis() > (user.getOtpCdt() + otpExpireTime))
@@ -154,8 +158,17 @@ public class CustomerService extends UserService {
         else {
             user.setOtpStatus(1);
             this.save(user);
-            loginRequest.setUsername(user.getId().toString());
-            return this.generateToken(loginRequest);
+            authRequest.setUsername(user.getId().toString());
+            return this.generateToken(authRequest);
         }
+    }
+
+    public HttpResponse prepareOAuth(AuthRequest authRequest) {
+        if (authRequest.getGrantType().equals("password")) {
+            return getOAuthTokenOtp(authRequest);
+        } else if (authRequest.getGrantType().equals("refresh_token")) {
+            return refreshToken(authRequest);
+        }
+        return null;
     }
 }

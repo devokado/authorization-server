@@ -1,7 +1,6 @@
 package com.devokado.authServer.service;
 
 import com.devokado.authServer.exceptions.DuplicateException;
-import com.devokado.authServer.exceptions.NotFoundException;
 import com.devokado.authServer.model.User;
 import com.devokado.authServer.model.request.UserPatchRequest;
 import com.devokado.authServer.model.request.UserUpdateRequest;
@@ -24,11 +23,14 @@ import java.util.Optional;
 @Service
 public class UserService extends KeycloakService {
 
-    @Autowired
     public UserRepository userRepository;
+    public LocaleHelper locale;
 
     @Autowired
-    public LocaleHelper locale;
+    public void init(UserRepository userRepository, LocaleHelper locale) {
+        this.userRepository = userRepository;
+        this.locale = locale;
+    }
 
     public Iterable<User> list() {
         return userRepository.findAll();
@@ -47,17 +49,11 @@ public class UserService extends KeycloakService {
     }
 
     public Optional<User> findByEmail(String email) {
-        Optional<User> user = userRepository.findByEmail(email);
-        if (user.isPresent())
-            return user;
-        else throw new NotFoundException(locale.getString("userNotFound"));
+        return userRepository.findByEmail(email);
     }
 
     public Optional<User> findByMobile(String mobile) {
-        Optional<User> user = userRepository.findByMobile(mobile);
-        if (user.isPresent())
-            return user;
-        else throw new NotFoundException(locale.getString("userNotFound"));
+        return userRepository.findByMobile(mobile);
     }
 
     public User save(User user) {
